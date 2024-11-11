@@ -1,12 +1,15 @@
-# Created by Deltaion Lee (MCMi460) on Github
-# Convert `friendCode` into `principalId`
+"""
+Created by Deltaion Lee (MCMi460) on Github
+Convert `friendCode` into `principalId`
 
-# This method took two weeks to figure out and five minutes to code
-# Thank you, https://www.3dbrew.org/wiki/Principal_ID
-# for essentially making my efforts have worth
-# I would kiss Meleemeister (https://www.3dbrew.org/wiki/Special:Contributions/Meleemeister)
+This method took two weeks to figure out and five minutes to code
+Thank you, https://www.3dbrew.org/wiki/Principal_ID
+for essentially making my efforts have worth
+I would kiss Meleemeister (https://www.3dbrew.org/wiki/Special:Contributions/Meleemeister)
+"""
 
-from . import *
+# pylint: disable=function-redefined
+# from . import *
 import hashlib
 
 
@@ -25,7 +28,13 @@ class PrincipalIDValidityError(Exception):
 #
 
 def friend_code_to_principal_id(friend_code: str) -> int:
-    # Ensure this friend code has no hyphens, just its 12 digits.
+    """
+    return the principal id of a given friend code
+    Ensure this friend code has no hyphens, just its 12 digits.
+    @params friend_code a string that contain a 3ds friend code
+    @return a integer that is the principal ID of the given friend code
+    @throws FriendCodeValidityError raised when a invalid friend code was given
+    """
     friend_code = ''.join(filter(str.isdigit, str(friend_code))).zfill(12)
     if len(friend_code) != 12:
         raise FriendCodeValidityError('an invalid friend code was passed')
@@ -42,7 +51,7 @@ def friend_code_to_principal_id(friend_code: str) -> int:
     return principal_id
 
 
-def check_principal_id_validity(checksum_byte: int, principal_id: int) -> bool:
+def check_principal_id_validity(checksum_byte: str, principal_id: int) -> bool:
     return generate_checksum_byte(principal_id) == checksum_byte
 
 
