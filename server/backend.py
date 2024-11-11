@@ -1,22 +1,36 @@
-# Created by Deltaion Lee (MCMi460) on Github
-# Based from NintendoClients' `examples/3ds/friends.py`
-import datetime
+"""
+Created by Deltaion Lee (MCMi460) on Github
+Based from NintendoClients' `examples/3ds/friends.py`
+"""
 
+# standard library
+import argparse
+import datetime
+import io
+import sys
+import time
+import traceback
+import logging
+
+# third-party libraries
+import anyio
 from nintendo import nasc
 from nintendo.nex import backend, friends, settings
 from sqlalchemy import create_engine, delete, select, update
 from sqlalchemy.orm import Session
-import anyio, sys, argparse
-
-from database import start_db_time, get_db_url, Friend, DiscordFriends
 
 sys.path.append('../')
-from api.private import SERIAL_NUMBER, MAC_ADDRESS, DEVICE_CERT, DEVICE_NAME, REGION, LANGUAGE, NINTENDO_PID, PRETENDO_PID, PID_HMAC, NINTENDO_NEX_PASSWORD, PRETENDO_NEX_PASSWORD
-from api import *
-from api.love2 import *
-from api.networks import NetworkType, InvalidNetworkError
 
-import logging
+# local libraries
+from database import DiscordFriends, Friend, get_db_url, start_db_time
+import api.love2 as love2
+from api.networks import InvalidNetworkError, NetworkType
+# pylint: disable=import-error, no-name-in-module
+from api.private import (DEVICE_CERT, DEVICE_NAME, LANGUAGE, MAC_ADDRESS,
+                         NINTENDO_NEX_PASSWORD, NINTENDO_PID, PID_HMAC,
+                         PRETENDO_NEX_PASSWORD, PRETENDO_PID, REGION,
+                         SERIAL_NUMBER)
+
 logging.basicConfig(level=logging.INFO)
 
 delay = 2
@@ -40,8 +54,8 @@ async def main():
 		if not queried_friends:
 			continue
 
-		all_friends = [(friend_code_to_principal_id(f.friend_code), f.last_accessed) for f in queried_friends]
-		friend_codes = [ f[0] for f in all_friends ]
+        all_friends = [(love2.friend_code_to_principal_id(f.friend_code), f.last_accessed) for f in queried_friends]
+        friend_codes = [ f[0] for f in all_friends ]
 
 		for i in range(0, len(friend_codes), 100):
 			rotation = friend_codes[i:i+100]
@@ -127,7 +141,7 @@ async def main():
 								cleanUp.append(t1.pid)
 
 						for removed_friend in removal_list:
-							removed_friend_code = str(principal_id_to_friend_code(removed_friend)).zfill(12)
+                            removed_friend_code = str(love2.principal_id_to_friend_code(removed_friend)).zfill(12)
 
 							# Remove this friend code from both our tracked network friends and Discord friend codes.
 							session.execute(delete(Friend).where(Friend.friend_code == removed_friend_code).where(Friend.network == network))
@@ -152,35 +166,35 @@ async def main():
 									game_description = ''
 								joinable = bool(game.presence.join_availability_flag)
 
-								friend_code = str(principal_id_to_friend_code(game.pid)).zfill(12)
-								session.execute(
-									update(Friend)
-									.where(Friend.friend_code == friend_code)
-									.where(Friend.network == network)
-									.values(
-										online=True,
-										title_id=game.presence.game_key.title_id,
-										upd_id=game.presence.game_key.title_version,
-										joinable=joinable,
-										game_description=game_description,
-										last_online=time.time()
-									)
-								)
-								session.commit()
+                                friend_code = str(love2.principal_id_to_friend_code(game.pid)).zfill(12)
+                                session.execute(
+                                    update(Friend)
+                                    .where(Friend.friend_code == friend_code)
+                                    .where(Friend.network == network)
+                                    .values(
+                                        online=True,
+                                        title_id=game.presence.game_key.title_id,
+                                        upd_id=game.presence.game_key.title_version,
+                                        joinable=joinable,
+                                        game_description=game_description,
+                                        last_online=time.time()
+                                    )
+                                )
+                                session.commit()
 
 							for offline_user in [ h for h in rotation if not h in online_users ]:
-								friend_code = str(principal_id_to_friend_code(offline_user)).zfill(12)
-								session.execute(
-									update(Friend)
-									.where(Friend.friend_code == friend_code)
-									.where(Friend.network == network)
-									.values(
-										online=False,
-										title_id=0,
-										upd_id=0
-									)
-								)
-								session.commit()
+                                friend_code = str(love2.principal_id_to_friend_code(offline_user)).zfill(12)
+                                session.execute(
+                                    update(Friend)
+                                    .where(Friend.friend_code == friend_code)
+                                    .where(Friend.network == network)
+                                    .values(
+                                        online=False,
+                                        title_id=0,
+                                        upd_id=0
+                                    )
+                                )
+                                session.commit()
 
 							# I just do not understand what I'm doing wrong with get_friend_mii_list
 							# The docs do not specify much
@@ -212,28 +226,28 @@ async def main():
 									m = await friends_client.get_friend_mii([current_friend,])
 									username = m[0].mii.name
 									mii_data = m[0].mii.mii_data
-									obj = MiiData()
-									obj.decode(obj.convert(io.BytesIO(mii_data)))
-									face = obj.mii_studio()['data']
+                                    obj = love2.MiiData()
+                                    obj.decode(obj.convert(io.BytesIO(mii_data)))
+                                    face = obj.mii_studio()['data']
 
 									# Get user's favorite game
 									favorite_game = current_info[0].game_key.title_id
 								else:
 									comment = ''
 
-								friend_code = str(principal_id_to_friend_code(current_friend.pid)).zfill(12)
-								session.execute(
-									update(Friend)
-									.where(Friend.friend_code == friend_code)
-									.where(Friend.network == network)
-									.values(
-										username=username,
-										message=comment,
-										mii=face,
-										favorite_game=favorite_game
-									)
-								)
-								session.commit()
+                                friend_code = str(love2.principal_id_to_friend_code(current_friend.pid)).zfill(12)
+                                session.execute(
+                                    update(Friend)
+                                    .where(Friend.friend_code == friend_code)
+                                    .where(Friend.network == network)
+                                    .values(
+                                        username=username,
+                                        message=comment,
+                                        mii=face,
+                                        favorite_game=favorite_game
+                                    )
+                                )
+                                session.commit()
 
 						for friend in rotation + cleanUp:
 							time.sleep(delay / quicker)
