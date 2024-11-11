@@ -68,6 +68,8 @@ async def main():
                 client.set_title(0x0004013000003202, 20)
                 client.set_locale(REGION, LANGUAGE)
 
+                # storing the PID and NEX_PASSWORD in a dictonary would avoid that
+                # api private would need to be eddited for that
                 if network == NetworkType.NINTENDO:
                     client.set_url("nasc.nintendowifi.net")
                     PID = NINTENDO_PID
@@ -78,7 +80,9 @@ async def main():
                     PID = PRETENDO_PID
                     NEX_PASSWORD = PRETENDO_NEX_PASSWORD
                 else:
-                    raise InvalidNetworkError(f"Network type {network} is not configured for querying")
+                    raise InvalidNetworkError(
+                        f"Network type {network} is not configured for querying"
+                        )
 
                 client.set_device(SERIAL_NUMBER, MAC_ADDRESS, DEVICE_CERT, DEVICE_NAME)
                 client.set_user(PID, PID_HMAC)
@@ -105,7 +109,7 @@ async def main():
                         for friend in removables:
                             time.sleep(DELAY / QUICKER)
                             await friends_client.remove_friend_by_principal_id(friend.pid)
-                        print('Removed %s friends' % str(len(removables)))
+                        print(f'Removed {str(len(removables))} friends')
 
                         removal_list = []
                         clean_up = []
@@ -140,7 +144,9 @@ async def main():
                                 clean_up.append(t1.pid)
 
                         for removed_friend in removal_list:
-                            removed_friend_code = str(love2.principal_id_to_friend_code(removed_friend)).zfill(12)
+                            removed_friend_code = str(
+                                love2.principal_id_to_friend_code(removed_friend)
+                                ).zfill(12)
 
                             # Remove this friend code from both our tracked network friends and Discord friend codes.
                             session.execute(delete(Friend).where(Friend.friend_code == removed_friend_code).where(Friend.network == network))
@@ -165,7 +171,9 @@ async def main():
                                     game_description = ''
                                 joinable = bool(game.presence.join_availability_flag)
 
-                                friend_code = str(love2.principal_id_to_friend_code(game.pid)).zfill(12)
+                                friend_code = str(
+                                    love2.principal_id_to_friend_code(game.pid)
+                                    ).zfill(12)
                                 session.execute(
                                     update(Friend)
                                     .where(Friend.friend_code == friend_code)
@@ -182,7 +190,9 @@ async def main():
                                 session.commit()
 
                             for offline_user in [ h for h in rotation if not h in online_users ]:
-                                friend_code = str(love2.principal_id_to_friend_code(offline_user)).zfill(12)
+                                friend_code = str(
+                                    love2.principal_id_to_friend_code(offline_user)
+                                    ).zfill(12)
                                 session.execute(
                                     update(Friend)
                                     .where(Friend.friend_code == friend_code)
@@ -234,7 +244,9 @@ async def main():
                                 else:
                                     comment = ''
 
-                                friend_code = str(love2.principal_id_to_friend_code(current_friend.pid)).zfill(12)
+                                friend_code = str(
+                                    love2.principal_id_to_friend_code(current_friend.pid)
+                                    ).zfill(12)
                                 session.execute(
                                     update(Friend)
                                     .where(Friend.friend_code == friend_code)
@@ -252,7 +264,7 @@ async def main():
                             time.sleep(DELAY / QUICKER)
                             await friends_client.remove_friend_by_principal_id(friend)
             except Exception as e:
-                print('An error occurred!\n%s' % e) # This could be updated to a f-string
+                print(f'An error occurred!\n {e}')
                 print(traceback.format_exc())
                 time.sleep(2)
 
@@ -263,7 +275,11 @@ async def main():
 if __name__ == '__main__':
     try:
         parser = argparse.ArgumentParser()
-        parser.add_argument('-n', '--network', choices=[member.lower_name() for member in NetworkType], required=True)
+        parser.add_argument(
+            '-n', '--network',
+              choices=[member.lower_name() for member in NetworkType],
+             required=True
+             )
         args = parser.parse_args()
 
         network = NetworkType[args.network.upper()]
